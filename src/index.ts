@@ -1,32 +1,20 @@
 import * as dotenv from "dotenv";
 dotenv.config();
-import {
-  Client,
-  TextChannel,
-  EmbedBuilder,
-  GatewayIntentBits,
-} from "discord.js";
-import express from "express";
-import axios from "axios";
 
-const app = express();
-const PORT = 4000;
+import { Client, TextChannel, GatewayIntentBits } from "discord.js";
+import axios from "axios";
 
 // Bot settings:
 const TOKEN = process.env.BOT_TOKEN;
 const RESERVOIR_API_KEY = process.env.RESERVOIR_API_KEY;
-const LISTINGS_CHANNEL_ID = "1084849334362849390";
-const SALES_CHANNEL_ID = "1084849348787060836";
+const LISTINGS_CHANNEL_ID =
+  process.env.LISTINGS_CHANNEL_ID || "LISTING_CHANNEL_ID";
 const POLL_RATE = 10000; // 10 seconds
-const BRAINDROPS_CONTRACT = "0xdFDE78d2baEc499fe18f2bE74B6c287eED9511d7";
+const CONTRACT_ADDRESS = "0xdFDE78d2baEc499fe18f2bE74B6c287eED9511d7";
 
 // global vars
 let timeNow = Math.floor(Date.now());
 let lastUpdatedListing = timeNow;
-
-app.listen(PORT, function () {
-  // do nothing
-});
 
 // Bot setup.
 const bot = new Client({
@@ -61,24 +49,24 @@ const getListings = async () => {
   // poll latest listings
   let res = await axios.get("https://api.reservoir.tools/orders/asks/v4", {
     headers: {
-      "x-api-key": RESERVOIR_API_KEY,
+      "x-api-key": RESERVOIR_API_KEY ? RESERVOIR_API_KEY : undefined,
     },
     params: {
       includeCriteriaMetadata: true,
       normalizeRoyalties: true,
-      contracts: BRAINDROPS_CONTRACT,
+      contracts: CONTRACT_ADDRESS,
     },
   });
 
   let orders = res?.data?.orders;
 
   let maxTime = 0;
-  for (const data of orders) {
-    const eventTime = Date.parse(data.createdAt);
+  for (const order of orders) {
+    const eventTime = Date.parse(order.createdAt);
 
     // Only deal with event if it is new
     if (lastUpdatedListing < eventTime) {
-      messageHandler(data);
+      messageHandler(order);
     }
 
     // Save the time of the latest event from this batch
@@ -114,7 +102,7 @@ const messageHandler = (data: any) => {
       height: 0,
       width: 0,
     },
-    url: `https://sansa.xyz/asset/${BRAINDROPS_CONTRACT}/${data.criteria.data.token.tokenId}`,
+    url: `https://sansa.xyz/asset/${data.contract}/${data.criteria.data.token.tokenId}`,
   } as any;
 
   const componentData = {
@@ -125,7 +113,7 @@ const messageHandler = (data: any) => {
         label: `Buy on Sansa`,
         disabled: false,
         type: 2,
-        url: `https://sansa.xyz/asset/${BRAINDROPS_CONTRACT}/${data.criteria.data.token.tokenId}`,
+        url: `https://sansa.xyz/asset/${data.contract}/${data.criteria.data.token.tokenId}`,
       },
     ],
   };
