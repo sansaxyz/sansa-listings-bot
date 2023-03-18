@@ -24,6 +24,7 @@ const bot = new Client({
 bot.login(TOKEN);
 
 bot.on("ready", () => {
+  console.log("bot logged in.");
   // Once discord bot is ready, initialise watchers
   initWatchers();
 });
@@ -95,6 +96,10 @@ const messageHandler = (data: any) => {
       {
         name: `${data.price.amount.native} ETH`,
         value: `$${numberWithCommas(Number(data.price.amount.usd.toFixed(2)))}`,
+      },
+      {
+        name: `Collection`,
+        value: `${data.criteria.data.collection.name}`,
       },
     ],
     thumbnail: {
